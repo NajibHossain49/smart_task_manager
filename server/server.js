@@ -5,6 +5,7 @@ import express from "express";
 import connectDB from "./config/db.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 import authRoutes from "./routes/authRoutes.js";
+import projectRoutes from "./routes/projectRoutes.js";
 import teamRoutes from "./routes/teamRoutes.js";
 
 dotenv.config();
@@ -34,6 +35,7 @@ app.get("/", (req, res) => {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/teams", teamRoutes);
+app.use("/api/projects", projectRoutes);
 
 // 404 Handler (For all routes)
 app.use(notFound);
