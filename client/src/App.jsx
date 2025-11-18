@@ -1,47 +1,59 @@
-import React from "react";
+import { useContext } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AuthContext, AuthProvider } from "./context/AuthContext";
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
+import Profile from "./pages/Profile";
+import Register from "./pages/Register";
+
+const PrivateRoute = ({ children }) => {
+  const { user, loading } = useContext(AuthContext);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+          <p className="text-xl font-semibold text-gray-700">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return user ? children : <Navigate to="/login" replace />;
+};
 
 function App() {
   return (
-    <div className="flex flex-col items-center">
-      <h1 className="text-xl p-4 m-4">Start Coding in React 19</h1>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-      <div className="bg-gray-300 p-4 rounded-sm text-lg text-center max-w-md">
-        <p className="text-3xl">🧑‍💻 Author</p>
-        <p className="mt-2">
-          Developed with ❤️ by <strong>Najib Hossain</strong>
-        </p>
-        <p className="mt-2">
-          <a
-            href="https://github.com/NajibHossain49"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline"
-          >
-            GitHub
-          </a>{" "}
-          |{" "}
-          <a
-            href="https://www.linkedin.com/in/md-najib-hossain"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline"
-          >
-            LinkedIn
-          </a>
-        </p>
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
 
-        <p className="mt-4 text-2xl">🌟 Show Your Support</p>
-        <p className="mt-2">
-          Liked it? You can show your support with a{" "}
-          <span className="font-bold">STAR (⭐)</span>.
-        </p>
-        <p className="mt-2">
-          Many thanks to all the{" "}
-          <span className="font-semibold">Stargazers</span> who have supported
-          this project with stars (⭐).
-        </p>
-      </div>
-    </div>
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
