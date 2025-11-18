@@ -5,7 +5,9 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
+import Teams from "./pages/Teams";
 
+// eslint-disable-next-line react/prop-types
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
 
@@ -45,6 +47,15 @@ function App() {
             element={
               <PrivateRoute>
                 <Profile />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/teams"
+            element={
+              <PrivateRoute>
+                <Teams />
               </PrivateRoute>
             }
           />
