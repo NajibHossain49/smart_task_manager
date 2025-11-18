@@ -4,6 +4,7 @@ import { AuthContext, AuthProvider } from "./context/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
+import Projects from "./pages/Projects";
 import Register from "./pages/Register";
 import Teams from "./pages/Teams";
 
@@ -56,6 +57,15 @@ function App() {
             element={
               <PrivateRoute>
                 <Teams />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/projects"
+            element={
+              <PrivateRoute>
+                <Projects />
               </PrivateRoute>
             }
           />

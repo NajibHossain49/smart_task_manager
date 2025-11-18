@@ -30,6 +30,17 @@ export default function Navbar() {
           >
             Teams
           </NavLink>
+
+          <NavLink
+            to="/projects"
+            className={({ isActive }) =>
+              `px-4 py-2 rounded font-medium transition-colors ${
+                isActive ? "bg-blue-700" : "hover:bg-blue-500"
+              }`
+            }
+          >
+            Projects
+          </NavLink>
           <span className="font-medium">Hi, {user?.name || user?.email}</span>
           <button
             onClick={logout}
