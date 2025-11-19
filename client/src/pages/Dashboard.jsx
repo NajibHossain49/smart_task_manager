@@ -131,7 +131,7 @@ export default function Dashboard() {
       loadTeamWorkload(selectedTeam);
       loadAllData();
     } catch (err) {
-      toast.error("Reassign failed");
+      toast.error("Reassignment failed — action unavailable");
     } finally {
       setReassigning(false);
     }

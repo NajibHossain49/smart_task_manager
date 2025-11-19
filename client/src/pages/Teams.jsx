@@ -5,6 +5,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useContext, useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
@@ -30,7 +31,7 @@ export default function Teams() {
       const res = await api.get("/teams");
       setTeams(res.data);
     } catch (err) {
-      alert("Failed to load teams");
+      toast.error("Failed to load teams");
     } finally {
       setLoading(false);
     }
@@ -59,7 +60,7 @@ export default function Teams() {
       setNewTeamName("");
       setShowCreateModal(false);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to create team");
+      toast.error(err.response?.data?.message || "Failed to create team");
     }
   };
 
@@ -79,7 +80,7 @@ export default function Teams() {
       setMemberForm({ name: "", role: "Developer", capacity: 5 });
       setShowAddMemberModal(false);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to add member");
+      toast.error(err.response?.data?.message || "Failed to add member");
     }
   };
 
@@ -89,7 +90,7 @@ export default function Teams() {
     try {
       const res = await api.get(`/teams/${selectedTeam._id}/suggest-assignee`);
       const suggested = res.data;
-      alert(
+      toast.success(
         `Smart Suggestion: Assign to ${suggested.name}\n` +
           `Role: ${suggested.role} | Capacity: ${
             suggested.capacity
@@ -98,9 +99,9 @@ export default function Teams() {
       );
     } catch (err) {
       if (err.response?.status === 404) {
-        alert("No available members in this team yet.");
+        toast.error("No available members in this team yet.");
       } else {
-        alert(
+        toast.error(
           "Could not get suggestion. Make sure team has members with capacity."
         );
       }

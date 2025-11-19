@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import api from "../services/api";
 
 export default function TaskModal({
@@ -64,7 +65,7 @@ export default function TaskModal({
       if (err.response?.data?.message === "overcapacity") {
         setWarning(err.response.data);
       } else {
-        alert("Task creation failed");
+        toast.error("Task creation failed");
       }
     } finally {
       setLoading(false);
@@ -82,7 +83,7 @@ export default function TaskModal({
       });
       onClose(true);
     } catch (err) {
-      alert("Failed to assign");
+      toast.error("Failed to assign");
     }
   };
 
@@ -90,9 +91,9 @@ export default function TaskModal({
     try {
       const res = await api.get(`/teams/${teamId}/suggest-assignee`);
       setAssignedTo(res.data._id);
-      alert(`Auto-assigned to ${res.data.name}`);
+      toast.success(`Auto-assigned to ${res.data.name}`);
     } catch (err) {
-      alert("No available member found");
+      toast.error("No available member found");
     }
   };
 

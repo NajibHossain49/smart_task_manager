@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { AuthContext } from "../context/AuthContext";
@@ -33,7 +34,7 @@ export default function ProjectDetail() {
       setTasks(tasksRes.data);
       setTeamLoad(loadRes.data || []);
     } catch (err) {
-      alert("Failed to load project");
+      toast.error("Failed to load project");
     } finally {
       setLoading(false);
     }
@@ -87,7 +88,9 @@ export default function ProjectDetail() {
           setShowTaskModal(false);
         }
       } else {
-        alert(err.response?.data?.message || "Failed to create task");
+        toast.error(
+          `${err.response?.data?.message} || "Failed to create task"`
+        );
       }
     }
   };

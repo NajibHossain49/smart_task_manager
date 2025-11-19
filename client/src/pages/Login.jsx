@@ -15,7 +15,7 @@ export default function Login() {
       await login(email, password);
       navigate("/dashboard");
     } catch (err) {
-      toast.error("Login failed");
+      toast.error("Invalid Credentials");
     }
   };
 
