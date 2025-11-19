@@ -1,8 +1,9 @@
 import Task from '../models/Task.js';
 import TeamMember from '../models/TeamMember.js';
 import Project from '../models/Project.js';
-import Team from '../models/Team.js';
 import ActivityLog from '../models/ActivityLog.js';
+
+
 
 // Helper: Get current task count for a member
 const getMemberTaskCount = async (memberId) => {
@@ -183,5 +184,58 @@ export const getTeamLoad = async (req, res) => {
     res.json(load.sort((a, b) => a.currentTasks - b.currentTasks));
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateTask = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    const updates = req.body;
+
+    // যদি status চেঞ্জ হয় তাহলে Activity Log (অপশনাল, চাইলে রাখুন)
+    if (updates.status && updates.status !== task.status) {
+      await ActivityLog.create({
+        task: task._id,
+        taskTitle: task.title,
+        message: `Task status changed from "${task.status || "pending"}" to "${updates.status}"`,
+        timestamp: new Date(),
+      });
+    }
+
+    Object.assign(task, updates);
+    await task.save();
+
+    // Populate করে পাঠানো যাতে frontend-এ সুন্দর দেখায়
+    const populated = await Task.findById(task._id)
+      .populate("project", "name")
+      .populate("assignedTo", "name role");
+
+    res.json(populated);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const deleteTask = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    // Activity Log (অপশনাল)
+    await ActivityLog.create({
+      task: task._id,
+      taskTitle: task.title,
+      message: `Task "${task.title}" was deleted`,
+      timestamp: new Date(),
+    });
+
+    await Task.findByIdAndDelete(req.params.id);
+    res.json({ message: "Task deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 };

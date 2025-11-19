@@ -1,3 +1,4 @@
+// client/src/pages/Dashboard.jsx
 import {
   ArrowPathIcon,
   ClipboardDocumentListIcon,
@@ -10,17 +11,25 @@ import {
 import { useContext, useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "../components/Navbar";
+import TaskListModal from "../components/TaskListModal";
 import TaskModal from "../components/TaskModal";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
 
 export default function Dashboard() {
-  // eslint-disable-next-line no-unused-vars
-  const { user, logout } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
   const [modalOpen, setModalOpen] = useState(false);
+
+  // TaskListModal এর জন্য স্টেট
+  const [taskListModal, setTaskListModal] = useState({
+    open: false,
+    memberId: null,
+    memberName: null,
+  });
+
   const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [selectedTeam, setSelectedTeam] = useState(""); // Controlled by dropdown
+  const [selectedTeam, setSelectedTeam] = useState("");
 
   const [data, setData] = useState({
     teams: [],
@@ -35,7 +44,7 @@ export default function Dashboard() {
   const [reassigning, setReassigning] = useState(false);
   const [teamLoadLoading, setTeamLoadLoading] = useState(false);
 
-  // Load all initial data
+  // Load all dashboard data
   const loadAllData = async () => {
     try {
       setLoading(true);
@@ -49,12 +58,9 @@ export default function Dashboard() {
       const teams = teamsRes.data || [];
       const projects = projectsRes.data || [];
 
-      // Set initial selected team (first one) if none selected yet
       if (teams.length > 0 && !selectedTeam) {
         setSelectedTeam(teams[0]._id);
       }
-
-      // Default project (optional)
       if (projects.length > 0 && !selectedProjectId) {
         setSelectedProjectId(projects[0]._id);
       }
@@ -62,64 +68,71 @@ export default function Dashboard() {
       setData({
         teams,
         projects,
-        teamLoad: [], // Will be loaded separately based on selectedTeam
+        teamLoad: [],
         activityLogs: logsRes.data || [],
         totalProjects: projects.length,
         totalTasks: tasksRes.data.length,
       });
     } catch (err) {
-      console.error("Failed to load dashboard data:", err);
-      toast.error("Failed to load dashboard. Please try again.");
+      toast.error("Failed to load dashboard");
     } finally {
       setLoading(false);
     }
   };
 
-  // Load team workload for a specific team
+  // Load team workload
   const loadTeamWorkload = async (teamId) => {
-    if (!teamId) {
-      setData((prev) => ({ ...prev, teamLoad: [] }));
-      return;
-    }
-
+    if (!teamId) return;
     setTeamLoadLoading(true);
     try {
-      const loadRes = await api.get(`/tasks/team-load/${teamId}`);
-      setData((prev) => ({ ...prev, teamLoad: loadRes.data || [] }));
+      const res = await api.get(`/tasks/team-load/${teamId}`);
+      setData((prev) => ({ ...prev, teamLoad: res.data || [] }));
     } catch (err) {
-      console.error("Failed to load team workload:", err);
-      setData((prev) => ({ ...prev, teamLoad: [] }));
-      toast.error("Could not load team workload");
+      toast.error("Failed to load team workload");
     } finally {
       setTeamLoadLoading(false);
     }
   };
 
-  // Initial load
+  // Open member tasks
+  const openMemberTasks = (memberId, memberName) => {
+    setTaskListModal({
+      open: true,
+      memberId,
+      memberName,
+    });
+  };
+
+  // Open unassigned tasks
+  const openUnassignedTasks = () => {
+    setTaskListModal({
+      open: true,
+      memberId: "unassigned",
+      memberName: null,
+    });
+  };
+
   useEffect(() => {
     loadAllData();
   }, []);
 
-  // Load team workload whenever selectedTeam changes
   useEffect(() => {
     if (selectedTeam && !loading) {
       loadTeamWorkload(selectedTeam);
     }
   }, [selectedTeam, loading]);
 
+  // Reassign tasks
   const handleReassign = async () => {
     if (!selectedTeam || reassigning) return;
-
     setReassigning(true);
     try {
       const res = await api.post("/tasks/reassign", { teamId: selectedTeam });
       toast.success(res.data.message || "Tasks reassigned successfully!");
-
-      // FIXED: Force immediate refresh of team workload and activity logs
-      await Promise.all([loadTeamWorkload(selectedTeam), loadAllData()]);
+      loadTeamWorkload(selectedTeam);
+      loadAllData();
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Reassign failed");
+      toast.error("Reassign failed");
     } finally {
       setReassigning(false);
     }
@@ -146,145 +159,122 @@ export default function Dashboard() {
 
   return (
     <>
-      <Toaster />
+      <Toaster position="top-right" />
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <Navbar />
 
         <div className="max-w-7xl mx-auto p-6 lg:p-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 Dashboard
               </h1>
               <p className="text-gray-600 mt-2">
-                Manage your projects and optimize team workload
+                Smart Task & Workload Management
               </p>
             </div>
             {projects.length > 0 && (
               <button
                 onClick={() => setModalOpen(true)}
-                className="group bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 font-medium transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-3"
               >
-                <PlusIcon className="w-5 h-5" />
-                New Task
+                <PlusIcon className="w-6 h-6" />
+                Create New Task
               </button>
             )}
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* Total Projects Card */}
-            <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
-              <div className="h-1.5 bg-gradient-to-r from-blue-500 to-blue-600"></div>
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl group-hover:scale-110 transition-transform">
-                    <FolderIcon className="w-6 h-6 text-blue-600" />
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm font-medium">
+                    Total Projects
+                  </p>
+                  <p className="text-4xl font-bold text-blue-600 mt-2">
+                    {totalProjects}
+                  </p>
                 </div>
-                <h3 className="text-gray-500 text-sm font-medium mb-1">
-                  Total Projects
-                </h3>
-                <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
-                  {totalProjects}
-                </p>
+                <FolderIcon className="w-12 h-12 text-blue-500 opacity-80" />
               </div>
             </div>
 
-            {/* Total Tasks Card */}
-            <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
-              <div className="h-1.5 bg-gradient-to-r from-green-500 to-emerald-600"></div>
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-xl group-hover:scale-110 transition-transform">
-                    <ClipboardDocumentListIcon className="w-6 h-6 text-green-600" />
-                  </div>
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm font-medium">
+                    Total Tasks
+                  </p>
+                  <p className="text-4xl font-bold text-green-600 mt-2">
+                    {totalTasks}
+                  </p>
                 </div>
-                <h3 className="text-gray-500 text-sm font-medium mb-1">
-                  Total Tasks
-                </h3>
-                <p className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-700 bg-clip-text text-transparent">
-                  {totalTasks}
-                </p>
+                <ClipboardDocumentListIcon className="w-12 h-12 text-green-500 opacity-80" />
               </div>
             </div>
 
-            {/* Teams Card */}
-            <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
-              <div className="h-1.5 bg-gradient-to-r from-purple-500 to-purple-600"></div>
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl group-hover:scale-110 transition-transform">
-                    <UserGroupIcon className="w-6 h-6 text-purple-600" />
-                  </div>
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm font-medium">Teams</p>
+                  <p className="text-4xl font-bold text-purple-600 mt-2">
+                    {teams.length}
+                  </p>
                 </div>
-                <h3 className="text-gray-500 text-sm font-medium mb-1">
-                  Teams
-                </h3>
-                <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
-                  {teams.length}
-                </p>
+                <UserGroupIcon className="w-12 h-12 text-purple-500 opacity-80" />
               </div>
             </div>
 
-            {/* Active Team Dropdown Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="h-1.5 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
-              <div className="p-6">
-                <h3 className="text-gray-500 text-sm font-medium mb-3">
-                  Active Team
-                </h3>
-                <select
-                  value={selectedTeam || ""}
-                  onChange={(e) => {
-                    const newTeamId = e.target.value;
-                    setSelectedTeam(newTeamId);
-                    setSelectedProjectId(""); // Reset project when team changes
-                  }}
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl text-base font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gradient-to-r from-indigo-50 to-purple-50"
-                >
-                  <option value="">-- Select Team --</option>
-                  {teams.map((team) => (
-                    <option key={team._id} value={team._id}>
-                      {team.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <p className="text-gray-500 text-sm font-medium mb-3">
+                Active Team
+              </p>
+              <select
+                value={selectedTeam || ""}
+                onChange={(e) => setSelectedTeam(e.target.value)}
+                className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="">-- Select Team --</option>
+                {teams.map((t) => (
+                  <option key={t._id} value={t._id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           {/* Team Workload */}
-          {selectedTeam ? (
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mb-8">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          {selectedTeam && (
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 mb-10">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white rounded-t-2xl">
+                <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-3xl font-bold mb-2">Team Workload</h2>
-                    <p className="text-blue-100 flex items-center gap-2">
-                      <UserGroupIcon className="w-5 h-5" />
-                      Real-time capacity management
+                    <h2 className="text-3xl font-bold">Team Workload</h2>
+                    <p className="text-blue-100 mt-2">
+                      Click on a member to view & manage tasks
                     </p>
                   </div>
                   <button
                     onClick={handleReassign}
                     disabled={reassigning || teamLoadLoading}
-                    className={`group px-6 py-3 rounded-xl font-semibold transition-all shadow-lg flex items-center gap-2 ${
+                    className={`px-8 py-4 rounded-xl font-bold flex items-center gap-3 transition-all ${
                       reassigning || teamLoadLoading
-                        ? "bg-white/20 cursor-not-allowed text-white/60"
-                        : "bg-white text-blue-600 hover:bg-blue-50 hover:scale-105"
+                        ? "bg-white/20 cursor-not-allowed"
+                        : "bg-white text-blue-600 hover:bg-blue-50 shadow-lg"
                     }`}
                   >
                     {reassigning ? (
                       <>
-                        <ArrowPathIcon className="w-5 h-5 animate-spin" />
+                        <ArrowPathIcon className="w-6 h-6 animate-spin" />
                         Reassigning...
                       </>
                     ) : (
                       <>
-                        <SparklesIcon className="w-5 h-5 group-hover:animate-pulse" />
-                        Reassign Tasks
+                        <SparklesIcon className="w-6 h-6" />
+                        Auto Reassign Tasks
                       </>
                     )}
                   </button>
@@ -293,39 +283,28 @@ export default function Dashboard() {
 
               <div className="p-8">
                 {teamLoadLoading ? (
-                  <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-                    <p className="text-gray-500 font-medium">
-                      Loading workload...
-                    </p>
-                  </div>
+                  <p className="text-center py-12 text-gray-500">
+                    Loading workload...
+                  </p>
                 ) : teamLoad.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="inline-block p-4 bg-gray-50 rounded-full mb-4">
-                      <UserGroupIcon className="w-12 h-12 text-gray-300" />
-                    </div>
-                    <p className="text-gray-500 italic text-lg">
-                      No members or tasks in this team.
-                    </p>
-                    <p className="text-gray-400 mt-2">
-                      Add team members to get started!
-                    </p>
-                  </div>
+                  <p className="text-center py-12 text-gray-500">
+                    No team members found
+                  </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead>
-                        <tr className="border-b-2 border-gray-100">
-                          <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      <thead className="border-b-2 border-gray-200">
+                        <tr>
+                          <th className="text-left py-4 px-6 font-semibold text-gray-700">
                             Member
                           </th>
-                          <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                          <th className="text-left py-4 px-6 font-semibold text-gray-700">
                             Role
                           </th>
-                          <th className="text-center py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                          <th className="text-center py-4 px-6 font-semibold text-gray-700">
                             Load
                           </th>
-                          <th className="text-center py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                          <th className="text-center py-4 px-6 font-semibold text-gray-700">
                             Status
                           </th>
                         </tr>
@@ -334,62 +313,36 @@ export default function Dashboard() {
                         {teamLoad.map((m) => (
                           <tr
                             key={m._id}
-                            className="border-b border-gray-50 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all"
+                            onClick={() => openMemberTasks(m._id, m.name)}
+                            className="border-b hover:bg-blue-50 cursor-pointer transition-all"
                           >
-                            <td className="py-4 px-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold">
-                                  {m.name.charAt(0).toUpperCase()}
+                            <td className="py-6 px-6">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold">
+                                  {m.name[0].toUpperCase()}
                                 </div>
-                                <span className="font-semibold text-gray-800">
+                                <span className="font-semibold text-gray-800 text-lg">
                                   {m.name}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-4 px-4">
-                              <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">
-                                {m.role}
-                              </span>
+                            <td className="py-6 px-6 text-gray-600">
+                              {m.role}
                             </td>
-                            <td className="py-4 px-4">
-                              <div className="flex flex-col items-center gap-2">
-                                <span className="font-bold text-lg text-gray-800">
-                                  {m.currentTasks}/{m.capacity}
-                                </span>
-                                <div className="w-full max-w-[120px] h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full transition-all duration-500 ${
-                                      m.isOverloaded ||
-                                      m.currentTasks > m.capacity
-                                        ? "bg-gradient-to-r from-red-500 to-red-600"
-                                        : m.currentTasks >= m.capacity
-                                        ? "bg-gradient-to-r from-yellow-500 to-orange-500"
-                                        : "bg-gradient-to-r from-green-500 to-emerald-500"
-                                    }`}
-                                    style={{
-                                      width: `${Math.min(
-                                        (m.currentTasks / m.capacity) * 100,
-                                        100
-                                      )}%`,
-                                    }}
-                                  ></div>
-                                </div>
-                              </div>
+                            <td className="py-6 px-6 text-center font-bold text-xl">
+                              {m.currentTasks}/{m.capacity}
                             </td>
-                            <td className="py-4 px-4 text-center">
+                            <td className="py-6 px-6 text-center">
                               {m.isOverloaded ? (
-                                <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 text-red-700 rounded-xl text-sm font-semibold border border-red-200">
-                                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                <span className="px-5 py-2 bg-red-100 text-red-700 rounded-full font-bold">
                                   Overloaded
                                 </span>
                               ) : m.currentTasks >= m.capacity ? (
-                                <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-yellow-50 text-yellow-700 rounded-xl text-sm font-semibold border border-yellow-200">
-                                  <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                                <span className="px-5 py-2 bg-yellow-100 text-yellow-700 rounded-full font-bold">
                                   Full
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-700 rounded-xl text-sm font-semibold border border-green-200">
-                                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                <span className="px-5 py-2 bg-green-100 text-green-700 rounded-full font-bold">
                                   Available
                                 </span>
                               )}
@@ -401,67 +354,43 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 mb-8 text-center">
-              <div className="inline-block p-4 bg-gray-50 rounded-full mb-4">
-                <UserGroupIcon className="w-12 h-12 text-gray-300" />
+
+              {/* Unassigned Tasks Button */}
+              <div className="border-t border-gray-200 p-6 text-center">
+                <button
+                  onClick={openUnassignedTasks}
+                  className="text-blue-600 hover:text-blue-800 font-semibold text-lg underline"
+                >
+                  View All Unassigned Tasks →
+                </button>
               </div>
-              <p className="text-gray-500 text-lg font-medium">
-                Please select a team to view workload
-              </p>
-              <p className="text-gray-400 mt-2">
-                Choose a team from the dropdown above
-              </p>
             </div>
           )}
 
-          {/* Recent Reassignments */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
-              <div className="flex items-center gap-3">
-                <ClockIcon className="w-7 h-7" />
-                <div>
-                  <h2 className="text-2xl font-bold">Recent Reassignments</h2>
-                  <p className="text-blue-100 text-sm mt-1">
-                    Latest activity log
-                  </p>
-                </div>
-              </div>
+          {/* Recent Activity */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white rounded-t-2xl">
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <ClockIcon className="w-8 h-8" />
+                Recent Activity
+              </h2>
             </div>
-
             <div className="p-8">
               {activityLogs.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="inline-block p-4 bg-gray-50 rounded-full mb-4">
-                    <ClockIcon className="w-12 h-12 text-gray-300" />
-                  </div>
-                  <p className="text-gray-500 italic text-lg">
-                    No reassignments yet.
-                  </p>
-                  <p className="text-gray-400 mt-2">
-                    Activity will appear here once you start reassigning tasks
-                  </p>
-                </div>
+                <p className="text-center text-gray-500 py-12 italic">
+                  No recent activity
+                </p>
               ) : (
-                <div className="space-y-3">
-                  {activityLogs.map((log, idx) => (
+                <div className="space-y-4">
+                  {activityLogs.slice(0, 10).map((log) => (
                     <div
                       key={log._id}
-                      className="group flex items-start gap-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50/30 hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all border border-gray-100 hover:border-blue-200 hover:shadow-md"
+                      className="p-5 bg-gray-50 rounded-xl border border-gray-200"
                     >
-                      <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                        {activityLogs.length - idx}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
-                          {log.message}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
-                          <ClockIcon className="w-4 h-4" />
-                          {new Date(log.timestamp).toLocaleString()}
-                        </p>
-                      </div>
+                      <p className="font-medium text-gray-800">{log.message}</p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -470,7 +399,26 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Task Modal */}
+        {/* Full Task List Modal (With Edit, Delete, Status, Filter) */}
+        {taskListModal.open && (
+          <TaskListModal
+            isOpen={taskListModal.open}
+            onClose={() => {
+              setTaskListModal({
+                open: false,
+                memberId: null,
+                memberName: null,
+              });
+              loadTeamWorkload(selectedTeam);
+            }}
+            initialMemberId={taskListModal.memberId}
+            initialMemberName={taskListModal.memberName}
+            projects={projects}
+            teamId={selectedTeam}
+          />
+        )}
+
+        {/* Create Task Modal */}
         {modalOpen && selectedTeam && projects.length > 0 && (
           <TaskModal
             isOpen={modalOpen}

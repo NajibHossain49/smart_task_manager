@@ -14,19 +14,13 @@ dotenv.config();
 
 const app = express();
 
-
 export default app;
 
 // MongoDB Connect
 connectDB();
 
-// CORS 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "https://smart-task-manager-frontend.vercel.app", // frontend URL
-  "https://yourdomain.com",
-];
+// CORS
+const allowedOrigins = ["http://localhost:5173"];
 
 app.use(
   cors({
@@ -46,7 +40,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
-  res.json({ message: "Smart Task Manager API is LIVE on Vercel!", time: new Date() });
+  res.json({
+    message: "Smart Task Manager API is LIVE on Vercel!",
+    time: new Date(),
+  });
 });
 
 // Routes
