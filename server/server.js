@@ -14,18 +14,29 @@ dotenv.config();
 
 const app = express();
 
-// Vercel-এর জন্য export করা লাগবে
-if (process.env.VERCEL) {
-  export default app;
-}
 
-const PORT = process.env.PORT || 5000;
+export default app;
 
+// MongoDB Connect
 connectDB();
+
+// CORS 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://smart-task-manager-frontend.vercel.app", // frontend URL
+  "https://yourdomain.com",
+];
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://smart-task-manager-frontend.vercel.app"], // তোমার ফ্রন্টেন্ড URL যোগ করো
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
@@ -35,21 +46,23 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
-  res.json({ message: "Smart Task Manager API is running on Vercel! 🚀" });
+  res.json({ message: "Smart Task Manager API is LIVE on Vercel!", time: new Date() });
 });
 
-// routes...
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/activitylogs", activityLogRoutes);
 
+// Error handlers
 app.use(notFound);
 app.use(errorHandler);
 
-// Local-এ চললে তবেই listen করবে (Vercel-এ করবে না)
+// For locally Listener
 if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
