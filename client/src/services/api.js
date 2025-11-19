@@ -16,13 +16,4 @@ const api = axios.create({
   withCredentials: true, // For sending JWT cookie
 });
 
-// Request interceptor (token refresh or for logging)
-// api.interceptors.request.use(
-//   (config) => {
-//     // console.log("API Request →", config.baseURL + config.url);
-//     return config;
-//   },
-//   (error) => Promise.reject(error)
-// );
-
 export default api;
