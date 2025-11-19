@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { addTeamMember } from "../services/teamService";
 
+// eslint-disable-next-line react/prop-types
 export default function AddMemberModal({ isOpen, onClose, onSuccess, teamId }) {
   const [formData, setFormData] = useState({
     name: "",
