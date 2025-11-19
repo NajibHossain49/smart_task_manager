@@ -13,41 +13,44 @@ import teamRoutes from "./routes/teamRoutes.js";
 dotenv.config();
 
 const app = express();
+
+// Vercel-এর জন্য export করা লাগবে
+if (process.env.VERCEL) {
+  export default app;
+}
+
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
 connectDB();
 
-// Middlewares
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://smart-task-manager-frontend.vercel.app"], // তোমার ফ্রন্টেন্ড URL যোগ করো
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Basic Route
 app.get("/", (req, res) => {
-  res.json({ message: "Smart Task Manager API is running!" });
+  res.json({ message: "Smart Task Manager API is running on Vercel! 🚀" });
 });
 
-// API Routes
+// routes...
 app.use("/api/auth", authRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/activitylogs", activityLogRoutes);
 
-// 404 Handler (For all routes)
 app.use(notFound);
-
-// Global Error Handler
 app.use(errorHandler);
 
-// Server Listen
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// Local-এ চললে তবেই listen করবে (Vercel-এ করবে না)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
