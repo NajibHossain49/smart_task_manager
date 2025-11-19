@@ -20,7 +20,10 @@ export default app;
 connectDB();
 
 // CORS
-const allowedOrigins = ["http://localhost:5173"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://smart-task-manager-gamma-five.vercel.app",
+];
 
 app.use(
   cors({
