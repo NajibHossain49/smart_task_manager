@@ -1,13 +1,18 @@
-// client/src/components/TaskModal.jsx
-import { useState, useEffect } from 'react';
-import api from '../services/api';
+import { useEffect, useState } from "react";
+import api from "../services/api";
 
-export default function TaskModal({ isOpen, onClose, teamId, projectId: initialProjectId, projects = [] }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('medium');
-  const [projectId, setProjectId] = useState(initialProjectId || '');
-  const [assignedTo, setAssignedTo] = useState('');
+export default function TaskModal({
+  isOpen,
+  onClose,
+  teamId,
+  projectId: initialProjectId,
+  projects = [],
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [projectId, setProjectId] = useState(initialProjectId || "");
+  const [assignedTo, setAssignedTo] = useState("");
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [warning, setWarning] = useState(null);
@@ -40,15 +45,15 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
     try {
       const payload = {
         title,
-        description: description || '',
+        description: description || "",
         projectId,
         assignedTo: assignedTo || null,
         priority,
       };
 
-      const res = await api.post('/tasks', payload);
+      const res = await api.post("/tasks", payload);
 
-      if (res.data.message === 'overcapacity') {
+      if (res.data.message === "overcapacity") {
         setWarning(res.data);
         setLoading(false);
         return;
@@ -56,10 +61,10 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
 
       onClose(true);
     } catch (err) {
-      if (err.response?.data?.message === 'overcapacity') {
+      if (err.response?.data?.message === "overcapacity") {
         setWarning(err.response.data);
       } else {
-        alert('Task creation failed');
+        alert("Task creation failed");
       }
     } finally {
       setLoading(false);
@@ -68,16 +73,16 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
 
   const handleAssignAnyway = async () => {
     try {
-      await api.post('/tasks', {
+      await api.post("/tasks", {
         title,
-        description: description || '',
+        description: description || "",
         projectId,
         assignedTo: warning.memberId,
         priority,
       });
       onClose(true);
     } catch (err) {
-      alert('Failed to assign');
+      alert("Failed to assign");
     }
   };
 
@@ -87,7 +92,7 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
       setAssignedTo(res.data._id);
       alert(`Auto-assigned to ${res.data.name}`);
     } catch (err) {
-      alert('No available member found');
+      alert("No available member found");
     }
   };
 
@@ -96,16 +101,24 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 max-h-screen overflow-y-auto">
-        <h2 className="text-3xl font-bold mb-6 text-gray-800">Create New Task</h2>
+        <h2 className="text-3xl font-bold mb-6 text-gray-800">
+          Create New Task
+        </h2>
 
         {warning && (
           <div className="bg-red-50 border border-red-300 text-red-700 p-5 rounded-lg mb-6">
             <p className="font-semibold">Warning: {warning.warning}</p>
             <div className="mt-4 flex gap-3">
-              <button onClick={handleAssignAnyway} className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700">
+              <button
+                onClick={handleAssignAnyway}
+                className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700"
+              >
                 Assign Anyway
               </button>
-              <button onClick={() => setWarning(null)} className="bg-gray-600 text-white px-5 py-2 rounded hover:bg-gray-700">
+              <button
+                onClick={() => setWarning(null)}
+                className="bg-gray-600 text-white px-5 py-2 rounded hover:bg-gray-700"
+              >
                 Choose Another
               </button>
             </div>
@@ -115,7 +128,9 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Project Select */}
           <div>
-            <label className="block font-semibold mb-2 text-gray-700">Project</label>
+            <label className="block font-semibold mb-2 text-gray-700">
+              Project
+            </label>
             <select
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
@@ -123,15 +138,19 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
               required
             >
               <option value="">Select Project</option>
-              {projects.map(p => (
-                <option key={p._id} value={p._id}>{p.name}</option>
+              {projects.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                </option>
               ))}
             </select>
           </div>
 
           {/* Title */}
           <div>
-            <label className="block font-semibold mb-2 text-gray-700">Task Title</label>
+            <label className="block font-semibold mb-2 text-gray-700">
+              Task Title
+            </label>
             <input
               type="text"
               value={title}
@@ -143,7 +162,9 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
 
           {/* Description */}
           <div>
-            <label className="block font-semibold mb-2 text-gray-700">Description (Optional)</label>
+            <label className="block font-semibold mb-2 text-gray-700">
+              Description (Optional)
+            </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -153,7 +174,9 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
 
           {/* Priority */}
           <div>
-            <label className="block font-semibold mb-2 text-gray-700">Priority</label>
+            <label className="block font-semibold mb-2 text-gray-700">
+              Priority
+            </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
@@ -169,7 +192,11 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="font-semibold text-gray-700">Assign To</label>
-              <button type="button" onClick={handleAutoAssign} className="text-blue-600 hover:underline text-sm font-medium">
+              <button
+                type="button"
+                onClick={handleAutoAssign}
+                className="text-blue-600 hover:underline text-sm font-medium"
+              >
                 Auto-assign
               </button>
             </div>
@@ -179,9 +206,10 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Unassigned</option>
-              {teamMembers.map(m => (
+              {teamMembers.map((m) => (
                 <option key={m._id} value={m._id}>
-                  {m.name} ({m.role}) — {m.currentTasks}/{m.capacity} {m.isOverloaded && '⚠️ Overloaded'}
+                  {m.name} ({m.role}) — {m.currentTasks}/{m.capacity}{" "}
+                  {m.isOverloaded && "⚠️ Overloaded"}
                 </option>
               ))}
             </select>
@@ -201,7 +229,7 @@ export default function TaskModal({ isOpen, onClose, teamId, projectId: initialP
               disabled={loading}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
             >
-              {loading ? 'Creating...' : 'Create Task'}
+              {loading ? "Creating..." : "Create Task"}
             </button>
           </div>
         </form>

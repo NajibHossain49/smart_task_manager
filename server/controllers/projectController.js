@@ -1,5 +1,5 @@
-import Project from '../models/Project.js';
-import Team from '../models/Team.js';
+import Project from "../models/Project.js";
+import Team from "../models/Team.js";
 
 // @desc    Create a new project
 // @route   POST /api/projects
@@ -11,10 +11,12 @@ export const createProject = async (req, res) => {
     // Check if team exists and user is the creator
     const team = await Team.findById(teamId);
     if (!team) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ message: "Team not found" });
     }
     if (team.creator.toString() !== req.user.userId) {
-      return res.status(403).json({ message: 'Not authorized to create project in this team' });
+      return res
+        .status(403)
+        .json({ message: "Not authorized to create project in this team" });
     }
 
     const project = await Project.create({
@@ -24,7 +26,7 @@ export const createProject = async (req, res) => {
     });
 
     // Populate team info in response
-    await project.populate('team', 'name');
+    await project.populate("team", "name");
 
     res.status(201).json(project);
   } catch (error) {
@@ -38,12 +40,14 @@ export const createProject = async (req, res) => {
 export const getMyProjects = async (req, res) => {
   try {
     // Find teams created by user
-    const userTeams = await Team.find({ creator: req.user.userId }).select('_id');
+    const userTeams = await Team.find({ creator: req.user.userId }).select(
+      "_id"
+    );
 
-    const teamIds = userTeams.map(t => t._id);
+    const teamIds = userTeams.map((t) => t._id);
 
     const projects = await Project.find({ team: { $in: teamIds } })
-      .populate('team', 'name')
+      .populate("team", "name")
       .sort({ createdAt: -1 });
 
     res.json(projects);
@@ -57,16 +61,19 @@ export const getMyProjects = async (req, res) => {
 // @access  Private
 export const getProjectById = async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id).populate('team', 'name');
+    const project = await Project.findById(req.params.id).populate(
+      "team",
+      "name"
+    );
 
     if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ message: "Project not found" });
     }
 
     // Security: Only allow if user owns the team
     const team = await Team.findById(project.team._id);
     if (team.creator.toString() !== req.user.userId) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     res.json(project);
@@ -85,18 +92,18 @@ export const updateProject = async (req, res) => {
     const project = await Project.findById(req.params.id);
 
     if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ message: "Project not found" });
     }
 
     const team = await Team.findById(project.team);
     if (team.creator.toString() !== req.user.userId) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     project.name = name || project.name;
     await project.save();
 
-    await project.populate('team', 'name');
+    await project.populate("team", "name");
     res.json(project);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -111,18 +118,18 @@ export const deleteProject = async (req, res) => {
     const project = await Project.findById(req.params.id);
 
     if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ message: "Project not found" });
     }
 
     const team = await Team.findById(project.team);
     if (team.creator.toString() !== req.user.userId) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     await Project.deleteOne({ _id: req.params.id });
     // Later: Also delete all tasks under this project (I'll add cascade)
 
-    res.json({ message: 'Project removed' });
+    res.json({ message: "Project removed" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

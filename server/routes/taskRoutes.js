@@ -15,7 +15,7 @@ router.post("/", protect, createTask);
 router.get("/", protect, getTasks);
 router.post("/reassign", protect, reassignTasks);
 router.get("/team-load/:teamId", protect, getTeamLoad);
-router.put('/:id', protect, updateTask);
-router.delete('/:id', protect, deleteTask);
+router.put("/:id", protect, updateTask);
+router.delete("/:id", protect, deleteTask);
 
 export default router;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createTeam } from "../services/teamService";
 
+// eslint-disable-next-line react/prop-types
 export default function CreateTeamModal({ isOpen, onClose, onSuccess }) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);

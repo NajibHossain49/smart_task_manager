@@ -1,15 +1,13 @@
-import Task from '../models/Task.js';
-import TeamMember from '../models/TeamMember.js';
-import Project from '../models/Project.js';
-import ActivityLog from '../models/ActivityLog.js';
-
-
+import ActivityLog from "../models/ActivityLog.js";
+import Project from "../models/Project.js";
+import Task from "../models/Task.js";
+import TeamMember from "../models/TeamMember.js";
 
 // Helper: Get current task count for a member
 const getMemberTaskCount = async (memberId) => {
   return await Task.countDocuments({
     assignedTo: memberId,
-    status: { $ne: 'done' },
+    status: { $ne: "done" },
   });
 };
 
@@ -17,27 +15,28 @@ const getMemberTaskCount = async (memberId) => {
 // @route   POST /api/tasks
 // @access  Private
 export const createTask = async (req, res) => {
-  const { title, description, projectId, assignedTo, priority, status } = req.body;
+  const { title, description, projectId, assignedTo, priority, status } =
+    req.body;
 
   try {
-    const project = await Project.findById(projectId).populate('team');
-    if (!project) return res.status(404).json({ message: 'Project not found' });
+    const project = await Project.findById(projectId).populate("team");
+    if (!project) return res.status(404).json({ message: "Project not found" });
 
     if (project.team.creator.toString() !== req.user.userId) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     let finalAssignee = assignedTo;
 
     // If assignedTo is provided, check overload
-    if (assignedTo && assignedTo !== 'unassigned') {
+    if (assignedTo && assignedTo !== "unassigned") {
       const member = await TeamMember.findById(assignedTo);
-      if (!member) return res.status(404).json({ message: 'Member not found' });
+      if (!member) return res.status(404).json({ message: "Member not found" });
 
       const currentTasks = await getMemberTaskCount(assignedTo);
       if (currentTasks >= member.capacity) {
         return res.status(400).json({
-          message: 'overcapacity',
+          message: "overcapacity",
           warning: `${member.name} has ${currentTasks} tasks but capacity is ${member.capacity}. Assign anyway?`,
           memberId: assignedTo,
         });
@@ -48,12 +47,12 @@ export const createTask = async (req, res) => {
       title,
       description,
       project: projectId,
-      assignedTo: finalAssignee === 'unassigned' ? null : finalAssignee,
-      priority: priority || 'medium',
-      status: status || 'pending',
+      assignedTo: finalAssignee === "unassigned" ? null : finalAssignee,
+      priority: priority || "medium",
+      status: status || "pending",
     });
 
-    await task.populate('assignedTo', 'name');
+    await task.populate("assignedTo", "name");
 
     res.status(201).json(task);
   } catch (error) {
@@ -70,11 +69,12 @@ export const getTasks = async (req, res) => {
   try {
     const filter = {};
     if (projectId) filter.project = projectId;
-    if (memberId) filter.assignedTo = memberId === 'unassigned' ? null : memberId;
+    if (memberId)
+      filter.assignedTo = memberId === "unassigned" ? null : memberId;
 
     const tasks = await Task.find(filter)
-      .populate('project', 'name')
-      .populate('assignedTo', 'name role')
+      .populate("project", "name")
+      .populate("assignedTo", "name role")
       .sort({ createdAt: -1 });
 
     res.json(tasks);
@@ -92,7 +92,7 @@ export const reassignTasks = async (req, res) => {
   try {
     const team = await Team.findById(teamId);
     if (!team || team.creator.toString() !== req.user.userId) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     const members = await TeamMember.find({ team: teamId });
@@ -104,9 +104,11 @@ export const reassignTasks = async (req, res) => {
       memberLoad[member._id] = { member, count };
     }
 
-    const overloaded = Object.values(memberLoad).filter(m => m.count >= m.member.capacity);
+    const overloaded = Object.values(memberLoad).filter(
+      (m) => m.count >= m.member.capacity
+    );
     const underloaded = Object.values(memberLoad)
-      .filter(m => m.count < m.member.capacity)
+      .filter((m) => m.count < m.member.capacity)
       .sort((a, b) => a.count - b.count); // Least loaded first
 
     const logs = [];
@@ -114,8 +116,8 @@ export const reassignTasks = async (req, res) => {
     for (const overload of overloaded) {
       const extraTasks = await Task.find({
         assignedTo: overload.member._id,
-        priority: { $in: ['low', 'medium'] },
-        status: { $ne: 'done' },
+        priority: { $in: ["low", "medium"] },
+        status: { $ne: "done" },
       }).sort({ priority: 1 }); // low first
 
       for (const task of extraTasks) {
@@ -129,7 +131,9 @@ export const reassignTasks = async (req, res) => {
 
         // Reassign
         const oldAssignee = await TeamMember.findById(task.assignedTo);
-        await Task.findByIdAndUpdate(task._id, { assignedTo: target.member._id });
+        await Task.findByIdAndUpdate(task._id, {
+          assignedTo: target.member._id,
+        });
 
         // Create log
         const log = await ActivityLog.create({
@@ -149,12 +153,14 @@ export const reassignTasks = async (req, res) => {
       }
     }
 
-    const recentLogs = await ActivityLog.find({ task: { $in: logs.map(l => l.task) } })
-      .populate('fromMember toMember', 'name')
+    const recentLogs = await ActivityLog.find({
+      task: { $in: logs.map((l) => l.task) },
+    })
+      .populate("fromMember toMember", "name")
       .sort({ timestamp: -1 })
       .limit(10);
 
-    res.json({ message: 'Reassignment completed', logs: recentLogs });
+    res.json({ message: "Reassignment completed", logs: recentLogs });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -194,12 +200,14 @@ export const updateTask = async (req, res) => {
 
     const updates = req.body;
 
-    // যদি status চেঞ্জ হয় তাহলে Activity Log (অপশনাল, চাইলে রাখুন)
+    // If the status changes, then Activity Log (optional, keep it if want)
     if (updates.status && updates.status !== task.status) {
       await ActivityLog.create({
         task: task._id,
         taskTitle: task.title,
-        message: `Task status changed from "${task.status || "pending"}" to "${updates.status}"`,
+        message: `Task status changed from "${task.status || "pending"}" to "${
+          updates.status
+        }"`,
         timestamp: new Date(),
       });
     }
@@ -207,7 +215,7 @@ export const updateTask = async (req, res) => {
     Object.assign(task, updates);
     await task.save();
 
-    // Populate করে পাঠানো যাতে frontend-এ সুন্দর দেখায়
+    // Populate and send so it looks nice on the frontend
     const populated = await Task.findById(task._id)
       .populate("project", "name")
       .populate("assignedTo", "name role");
@@ -224,7 +232,7 @@ export const deleteTask = async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    // Activity Log (অপশনাল)
+    // Activity Log (optional)
     await ActivityLog.create({
       task: task._id,
       taskTitle: task.title,
