@@ -5,7 +5,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useContext, useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast, ToastContainer } from "react-toastify";
 import Navbar from "../components/Navbar";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
@@ -21,10 +21,10 @@ export default function Teams() {
 
   const [newTeamName, setNewTeamName] = useState("");
   const [memberForm, setMemberForm] = useState({
-    name: "",
-    role: "Developer",
-    capacity: 5,
-  });
+  name: "",
+  role: "",  
+  capacity: 5,
+});
 
   const loadTeams = async () => {
     try {
@@ -90,12 +90,15 @@ export default function Teams() {
     try {
       const res = await api.get(`/teams/${selectedTeam._id}/suggest-assignee`);
       const suggested = res.data;
+
       toast.success(
-        `Smart Suggestion: Assign to ${suggested.name}\n` +
-          `Role: ${suggested.role} | Capacity: ${
-            suggested.capacity
-          } | Current Tasks: ${suggested.currentTasks || 0}\n\n` +
-          `This member has the most availability!`
+        `Assign to: ${suggested.name} | Role: ${suggested.role} | Capacity: ${
+          suggested.capacity
+        } | Current Tasks: ${suggested.currentTasks || 0}`,
+        {
+          autoClose: false,
+          closeButton: true,
+        }
       );
     } catch (err) {
       if (err.response?.status === 404) {
@@ -117,6 +120,7 @@ export default function Teams() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <Navbar />
+
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
@@ -132,6 +136,7 @@ export default function Teams() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Navbar />
+      <ToastContainer />
 
       <div className="max-w-7xl mx-auto p-6 lg:p-8">
         {/* Header */}
@@ -213,7 +218,7 @@ export default function Teams() {
                     className="group bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-5 py-3 rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg border border-white/20 hover:scale-105"
                   >
                     <SparklesIcon className="w-5 h-5 group-hover:animate-pulse" />
-                    AI Suggest
+                    Auto Suggest
                   </button>
                   <button
                     onClick={() => setShowAddMemberModal(true)}
@@ -436,19 +441,19 @@ export default function Teams() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Role
                 </label>
-                <select
+                <input
+                  type="text"
+                  placeholder="e.g. Developer, Designer, QA, DevOps"
                   value={memberForm.role}
                   onChange={(e) =>
                     setMemberForm({ ...memberForm, role: e.target.value })
                   }
                   className="w-full p-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                >
-                  <option>Developer</option>
-                  <option>Designer</option>
-                  <option>QA</option>
-                  <option>DevOps</option>
-                  <option>Manager</option>
-                </select>
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter the member&apos;s role or job title
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
